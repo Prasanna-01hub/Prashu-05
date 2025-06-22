@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ColorCart - Mini E-Commerce</title>
+  <style>
+    body{margin:0;font-family:'Segoe UI',sans-serif;background:linear-gradient(to right,#ffecd2,#fcb69f);color:#333}
+    header{background:#ff6f61;color:#fff;padding:1rem;text-align:center;position:sticky;top:0;z-index:1000}
+    .container{padding:1rem;max-width:1200px;margin:auto}
+    .controls{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;margin-bottom:1rem}
+    .search input, .sort select, .category select, .filter select{padding:0.5rem;border:none;border-radius:0.5rem;width:100%;max-width:300px}
+    .products{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:1rem}
+    .product{background:#fff;border-radius:1rem;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);transition:transform 0.3s}
+    .product:hover{transform:scale(1.02)}
+    .product img{width:100%;height:200px;object-fit:cover}
+    .info{padding:1rem}
+    .info h3{margin:0 0 0.5rem}
+    .rating{color:#f5a623;margin-bottom:0.5rem}
+    .info button{background:#ff6f61;color:#fff;border:none;padding:0.5rem 1rem;border-radius:0.5rem;cursor:pointer;margin:0.25rem 0}
+    .info button:hover{background:#e85c4f}
+    footer{text-align:center;padding:1rem;margin-top:2rem;color:#666}
+    .badge-container{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:1rem;margin-bottom:1rem;font-weight:bold}
+    .badge{padding:0.3rem 0.6rem;background:#ff6f6155;border-radius:0.5rem;cursor:pointer}
+    .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:#0005;display:flex;align-items:center;justify-content:center;z-index:9999}
+    .modal-content{background:#fff;padding:2rem;border-radius:1rem;max-height:80%;overflow:auto;width:90%;max-width:600px}
+    .modal h2{text-align:center}
+    .modal .item{display:flex;gap:1rem;margin-bottom:1rem;align-items:center;border-bottom:1px solid #ccc;padding-bottom:0.5rem}
+    .modal .item img{width:80px;height:80px;object-fit:cover;border-radius:0.5rem}
+    .modal .item-info{flex:1}
+    .modal button{margin-top:1rem}
+    .hidden{display:none}
+    .poster img{width:100%;max-height:300px;object-fit:cover;border-radius:1rem;margin-bottom:1rem}
+    @media(max-width:600px){.product img{height:150px}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🛍 ColorCart</h1>
+    <p>Find your favorite colorful products</p>
+  </header>
+
+  <div class="container">
+    <div class="badge-container">
+      <select id="locationBox" onchange="handleLocationChange()">
+        <option value="">🌍 Select Location</option>
+        <option value="Hyderabad">Hyderabad</option>
+        <option value="Kakinada">Kakinada</option>
+        <option value="Rajahmundry">Rajahmundry</option>
+        <option value="Vizag">Vizag</option>
+      </select>
+      <span class="badge" onclick="toggleModal('cart')">🛒 Cart: <span id="cartCount">0</span></span>
+      <span class="badge" onclick="toggleModal('wishlist')">💖 Wishlist: <span id="wishlistCount">0</span></span>
+    </div>
+
+    <div class="poster">
+      <img src="sale.jpg" alt="Electronics Sale Poster" />
+      <h2 style="text-align:center;color:#ff6f61">🔥 Big Electronics Sale - Up to 50% OFF!</h2>
+    </div>
+
+    <div class="controls">
+      <div class="search"><input type="text" id="searchBox" placeholder="Search products..." /></div>
+      <div class="sort"><select id="sortBox"><option value="">Sort by</option><option value="asc">Price: Low to High</option><option value="desc">Price: High to Low</option></select></div>
+      <div class="category"><select id="categoryBox"><option value="">All Categories</option><option value="Electronics">Electronics</option><option value="Clothes">Clothes</option><option value="Makeup">Makeup</option><option value="Accessories">Accessories</option></select></div>
+      <div class="filter"><select id="priceRange"><option value="">Price Range</option><option value="0-20">Under $20</option><option value="20-50">$20 - $50</option><option value="50-100">$50 - $100</option><option value="100+">Over $100</option></select></div>
+      <div class="filter"><select id="ratingFilter"><option value="">Min Rating</option><option value="3">3★ & up</option><option value="4">4★ & up</option><option value="5">5★ only</option></select></div>
+    </div>
+
+    <div class="products" id="productList"></div>
+  </div>
+
+  <footer>&copy; 2025 ColorCart - All rights reserved.</footer>
+
+  <!-- Cart Modal -->
+  <div id="cartModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>🛒 Cart</h2>
+      <div id="cartItems"></div>
+      <button onclick="toggleModal('cart')">Close</button>
+    </div>
+  </div>
+
+  <!-- Wishlist Modal -->
+  <div id="wishlistModal" class="modal hidden">
+    <div class="modal-content">
+      <h2>💖 Wishlist</h2>
+      <div id="wishlistItems"></div>
+      <button onclick="toggleModal('wishlist')">Close</button>
+    </div>
+  </div>
+<script>
+  const products = [
+    { name: "Laptop", img: "laptop.jpg", price: 29, category: "Electronics", rating: 4 },
+    { name: "Colorful umbrella", img: "Umbrella.jpg", price: 15, category: "Accessories", rating: 5 },
+    { name: "Rainbow lamp", img: "lamp.jpg", price: 22, category: "Accessories", rating: 4 },
+    { name: "Aurora Poster", img: "poster.jpg", price: 12, category: "Accessories", rating: 3 },
+    { name: "Gradient Hoodie", img: "hoodie.jpg", price: 49, category: "Clothes", rating: 5 },
+    { name: "Bright Backpack", img: "Bag.jpg", price: 35, category: "Clothes", rating: 4 },
+    { name: "Lipstick Set", img: "lipstick.jpg", price: 19, category: "Makeup", rating: 4 },
+    { name: "Smart Watch", img: "watch.jpg", price: 99, category: "Electronics", rating: 5 },
+    { name: "Perfume Bottle", img: "spray.jpg", price: 39, category: "Makeup", rating: 4 },
+    { name: "Tie-Dye T-Shirt", img: "tshirt.jpg", price: 25, category: "Clothes", rating: 4 },
+    { name: "Bluetooth Speaker", img: "mike.jpg", price: 59, category: "Electronics", rating: 5 },
+    { name: "Glitter Eyeshadow", img: "neck.jpg", price: 18, category: "Makeup", rating: 3 },
+    { name: "Boho Necklace", img: "neck1.jpg", price: 20, category: "Accessories", rating: 4 },
+    { name: "Wireless Earbuds", img: "mivi.jpg", price: 79, category: "Electronics", rating: 5 }
+  ];
+
+  let cart = [];
+  let wishlist = [];
+
+  function updateCounts() {
+    document.getElementById("cartCount").textContent = cart.length;
+    document.getElementById("wishlistCount").textContent = wishlist.length;
+  }
+
+  function displayProducts(filter = "", sort = "", category = "", price = "", rating = "") {
+    let list = [...products];
+
+    if (filter) {
+      list = list.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
+    }
+    if (category) {
+      list = list.filter(p => p.category === category);
+    }
+    if (price) {
+      const [min, max] = price.split("-").map(Number);
+      list = list.filter(p => {
+        if (price === "100+") return p.price > 100;
+        return p.price >= min && p.price <= max;
+      });
+    }
+    if (rating) {
+      list = list.filter(p => p.rating >= parseInt(rating));
+    }
+    if (sort === "asc") {
+      list.sort((a, b) => a.price - b.price);
+    } else if (sort === "desc") {
+      list.sort((a, b) => b.price - a.price);
+    }
+
+    const container = document.getElementById("productList");
+    container.innerHTML = "";
+    list.forEach(p => {
+      const product = document.createElement("div");
+      product.className = "product";
+      product.innerHTML = `
+        <img src="${p.img}" alt="${p.name}" onerror="this.src='images/fallback.jpg'" />
+        <div class="info">
+          <h3>${p.name}</h3>
+          <div class="rating">${"★".repeat(p.rating)}${"☆".repeat(5 - p.rating)}</div>
+          <p><strong>$${p.price}</strong></p>
+          <button onclick="addToCart('${p.name}')">Add to Cart</button>
+          <button onclick="addToWishlist('${p.name}')">Wishlist</button>
+        </div>
+      `;
+      container.appendChild(product);
+    });
+  }
+
+  function addToCart(name) {
+    const item = products.find(p => p.name === name);
+    if (!cart.includes(item)) {
+      cart.push(item);
+      updateCounts();
+      alert(`${item.name} added to cart!`);
+    }
+  }
+
+  function addToWishlist(name) {
+    const item = products.find(p => p.name === name);
+    if (!wishlist.includes(item)) {
+      wishlist.push(item);
+      updateCounts();
+      alert(`${item.name} added to wishlist!`);
+    }
+  }
+
+  function toggleModal(type) {
+    document.getElementById(type + "Modal").classList.toggle("hidden");
+    const container = document.getElementById(type + "Items");
+    const items = type === "cart" ? cart : wishlist;
+
+    container.innerHTML = "";
+    if (items.length === 0) {
+      container.innerHTML = "<p>No items added yet.</p>";
+    } else {
+      items.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "item";
+        div.innerHTML = `
+          <img src="${p.img}" alt="${p.name}" />
+          <div class="item-info">
+            <h4>${p.name}</h4>
+            <p>$${p.price}</p>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+  }
+
+  function handleLocationChange() {
+    const loc = document.getElementById("locationBox").value;
+    if (loc) alert(`Location set to ${loc}`);
+  }
+
+  document.getElementById("searchBox").addEventListener("input", () => {
+    const filter = document.getElementById("searchBox").value;
+    const sort = document.getElementById("sortBox").value;
+    const category = document.getElementById("categoryBox").value;
+    const price = document.getElementById("priceRange").value;
+    const rating = document.getElementById("ratingFilter").value;
+    displayProducts(filter, sort, category, price, rating);
+  });
+
+  document.querySelectorAll("select").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const filter = document.getElementById("searchBox").value;
+      const sort = document.getElementById("sortBox").value;
+      const category = document.getElementById("categoryBox").value;
+      const price = document.getElementById("priceRange").value;
+      const rating = document.getElementById("ratingFilter").value;
+      displayProducts(filter, sort, category, price, rating);
+    });
+  });
+
+  // Initial display
+  displayProducts();
+  updateCounts();
+</script>
+</body>
+</html>
